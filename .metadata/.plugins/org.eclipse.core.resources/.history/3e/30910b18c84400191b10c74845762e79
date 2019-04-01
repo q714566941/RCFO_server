@@ -1,0 +1,143 @@
+package decrypt;
+
+import java.io.*;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.util.Map;
+
+import javax.crypto.Cipher;
+import javax.crypto.CipherInputStream;
+import javax.crypto.CipherOutputStream;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
+
+import org.apache.commons.codec.binary.Base64;
+import org.omg.PortableServer.AdapterActivator;
+
+import decrypt.AES_file_DH;
+
+/**
+ * socket server
+ * @author hjh
+ *
+ */
+public class AES_file_DH_server {
+	public AES_file_DH_server() throws Exception{   
+	}
+	static String serverPublicKey = null;
+	static String clientPublicKey = null;         
+
+//	try{
+//		AES_file_DH ad = new AES_file_DH();
+//	}catch(Exception e){
+//		e.printStackTrace();
+//	}
+	
+	
+	public static void main(String[] args) throws Exception{
+		//initial bind listen
+		ServerSocket serverSocket = new ServerSocket(8888);
+		//accept
+		System.out.println("******server is going to begin!******");
+		Socket socket = serverSocket.accept();
+		//judge connection accessful ???
+		
+		//always listen
+		
+		
+		
+		//input
+		InputStream in = socket.getInputStream();
+		InputStreamReader inputStreamReader = new InputStreamReader(in);
+		BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
+		while((clientPublicKey = bufferedReader.readLine()) != null){
+			System.out.println("Cilent public key:\n" + clientPublicKey);    //???
+			//decrypt
+			initKey();
+			
+
+			String destPath = "/tmp/SGXindex_encrypt";
+			String decryptPath = "/tmp/SGXindex_decrypt";
+			af.decryFile(destPath, decryptPath);
+		}
+		socket.shutdownInput();
+		
+		//write
+		OutputStream outputStream = socket.getOutputStream();
+		PrintWriter printWriter = new PrintWriter(outputStream);
+		printWriter.write(serverPublicKey);
+		printWriter.flush();
+		socket.shutdownOutput();
+		
+		//close
+		printWriter.close();
+		outputStream.close();
+		bufferedReader.close();
+		inputStreamReader.close();
+		socket.close();
+		serverSocket.close();
+	}
+
+	
+
+static byte[] serverPrivateKey;
+static byte[] localKey;
+
+
+SecretKey key;   
+//initial local key
+public static  void initKey() throws Exception{
+	//gengerate A key pair
+	Map<String, Object> keyMap1 = DHCoder.initKey();
+	serverPublicKey = DHCoder.getPublicKey(keyMap1).toString();
+	serverPrivateKey = DHCoder.getPrivateKey(keyMap1);
+	
+	System.out.println("public key1:\n" + Base64.encodeBase64String(serverPublicKey.getBytes()));
+	System.out.println("private key1:\n" + Base64.encodeBase64String(serverPrivateKey));
+	
+	//Building Server's local key pair from Client's public key   !!!
+	
+	
+	localKey = DHCoder.getSecretKey(clientPublicKey.getBytes(), serverPrivateKey);    //String---byte[]
+	System.out.println("A's local key:\n" + Base64.encodeBase64String(localKey));
+}
+
+
+//decrypt file
+public void decryFile(String sourcePath, String destPath) throws Exception{
+//			Cipher cipher = Cipher.getInstance("AES");
+//			cipher.init(Cipher.DECRYPT_MODE, key);
+	SecretKey secretKey = new SecretKeySpec(localKey, "AES");
+	Cipher cipher = Cipher.getInstance(secretKey.getAlgorithm());
+	cipher.init(Cipher.DECRYPT_MODE, secretKey);
+	
+	File sourceFile = new File(sourcePath);
+	File destFile = new File(destPath);
+	InputStream inputStream = null;
+	OutputStream outputStream = null;
+	try{
+		
+		
+		inputStream = new FileInputStream(sourceFile);
+		outputStream = new FileOutputStream(destFile);
+		CipherOutputStream cipherOutputStream = new CipherOutputStream(outputStream, cipher);
+		byte[] buffer = new byte[1024];
+		int r;
+		while((r = inputStream.read(buffer)) >= 0){
+			cipherOutputStream.write(buffer, 0, r);
+		}
+		cipherOutputStream.close();
+	}catch(Exception e){
+		e.printStackTrace();
+	}finally{
+		try{
+			inputStream.close();
+			outputStream.close();
+		}catch(Exception e){
+			e.printStackTrace();
+		}
+		}
+	System.out.println("Decrypt successfully!");
+	}
+}
+	

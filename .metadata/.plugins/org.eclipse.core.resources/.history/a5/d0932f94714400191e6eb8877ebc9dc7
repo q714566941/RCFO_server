@@ -1,0 +1,153 @@
+package decrypt;
+
+import decrypt.DHCoder;
+
+import java.io.*;
+import java.util.Map;
+
+import javax.crypto.Cipher;
+import javax.crypto.CipherInputStream;
+import javax.crypto.CipherOutputStream;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
+
+import org.apache.commons.codec.binary.Base64;
+
+
+/**
+ * @author hjh
+ * @since 2019/3/11
+ */
+
+public class AES_file_DH {
+	public AES_file_DH() throws Exception{
+		initKey();
+	}
+	byte[] publicKey1;
+	byte[] privateKey1;
+	static byte[] key1;
+	byte[] publicKey2;
+	byte[] privateKey2;
+	static byte[] key2;
+	
+	SecretKey key;   
+	//initial local key
+	public final void initKey() throws Exception{
+		//gengerate A key pair
+		Map<String, Object> keyMap1 = DHCoder.initKey();
+		publicKey1 = DHCoder.getPublicKey(keyMap1);
+		privateKey1 = DHCoder.getPrivateKey(keyMap1);
+		
+		System.out.println("public key1:\n" + Base64.encodeBase64String(publicKey1));
+		System.out.println("private key1:\n" + Base64.encodeBase64String(privateKey1));
+		
+		//Building B's local key pair from A' public key   !!!
+		Map<String, Object> keyMap2 = DHCoder.initKey(publicKey1);
+		publicKey2 = DHCoder.getPublicKey(keyMap2);
+		privateKey2 = DHCoder.getPrivateKey(keyMap2);
+		
+		System.out.println("public key2:\n" + Base64.encodeBase64String(publicKey1));
+		System.out.println("private key2:\n" + Base64.encodeBase64String(privateKey1));
+		
+		key1 = DHCoder.getSecretKey(publicKey2, privateKey1);
+		System.out.println("A's local key:\n" + Base64.encodeBase64String(key1));
+		key2 = DHCoder.getSecretKey(publicKey1, privateKey2);
+		System.out.println("B's local key:\n" + Base64.encodeBase64String(key2));
+	}
+	
+	public static void encryptFile(String sourcepath, String destpath) throws Exception {
+		
+//		Cipher cipher = Cipher.getInstance("AES");
+//		cipher.init(Cipher.ENCRYPT_MODE, key);
+		SecretKey secretKey = new SecretKeySpec(key1, "AES");
+		Cipher cipher = Cipher.getInstance(secretKey.getAlgorithm());
+		cipher.init(Cipher.ENCRYPT_MODE, secretKey);
+		
+		File sourceFile = new File(sourcepath);
+		File destFile = new File(destpath);
+		InputStream inputStream = null;
+		OutputStream outputStream = null;
+		try {
+			inputStream =  new FileInputStream(sourceFile);
+			outputStream = new FileOutputStream(destFile);
+			
+			
+			
+			//encrypt flow
+			CipherInputStream cipherInputStream = new CipherInputStream(inputStream, cipher);
+			byte[] 	cache = new byte[1024];
+			int nRead = 0;
+			while((nRead = cipherInputStream.read(cache))!= -1){
+				outputStream.write(cache, 0, nRead);
+				outputStream.flush();
+			}
+			cipherInputStream.close();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}finally{
+			try{
+				inputStream.close();
+			}catch(IOException e){
+				e.printStackTrace();
+			}
+			try{
+				outputStream.close();
+			}catch(IOException e){
+				e.printStackTrace();
+			}
+		}
+		System.out.println("Encrypt successfully!");
+	}
+	
+	//decrypt file
+	public static void decryFile(String sourcePath, String destPath) throws Exception{
+//		Cipher cipher = Cipher.getInstance("AES");
+//		cipher.init(Cipher.DECRYPT_MODE, key);
+		SecretKey secretKey = new SecretKeySpec(key2, "AES");
+		Cipher cipher = Cipher.getInstance(secretKey.getAlgorithm());
+		cipher.init(Cipher.DECRYPT_MODE, secretKey);
+		
+		File sourceFile = new File(sourcePath);
+		File destFile = new File(destPath);
+		InputStream inputStream = null;
+		OutputStream outputStream = null;
+		try{
+			
+			
+			inputStream = new FileInputStream(sourceFile);
+			outputStream = new FileOutputStream(destFile);
+			CipherOutputStream cipherOutputStream = new CipherOutputStream(outputStream, cipher);
+			byte[] buffer = new byte[1024];
+			int r;
+			while((r = inputStream.read(buffer)) >= 0){
+				cipherOutputStream.write(buffer, 0, r);
+			}
+			cipherOutputStream.close();
+		}catch(Exception e){
+			e.printStackTrace();
+		}finally{
+			try{
+				inputStream.close();
+				outputStream.close();
+			}catch(Exception e){
+				e.printStackTrace();
+			}
+			}
+		System.out.println("Decrypt successfully!");
+	}
+	
+	
+	
+	public static void main(String[] args) throws Exception{
+//		String sKey = "00b09e37363e596e1f25b23c78e49939238b";
+		AES_file_DH af = new AES_file_DH();
+
+		String sourcePath = "/tmp/SGXindex";
+		String destPath = "/tmp/SGXindex_encrypt";
+		String decryptPath = "/tmp/SGXindex_decrypt";
+		
+		encryptFile(sourcePath, destPath);
+		decryFile(destPath, decryptPath);
+		
+	}
+}

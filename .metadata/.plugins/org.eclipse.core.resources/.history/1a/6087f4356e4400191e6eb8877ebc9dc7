@@ -1,0 +1,20 @@
+package server;
+
+import java.io.*;
+import java.net.ServerSocket;
+import java.net.Socket;
+
+/**
+ * Socket based with TCP
+ * Server
+ * @author hjh
+ * @date 2019/3/12
+ */
+public class Server {
+
+	public static void main(String[] args) {
+		// TODO Auto-generated method stub
+
+	}
+
+}

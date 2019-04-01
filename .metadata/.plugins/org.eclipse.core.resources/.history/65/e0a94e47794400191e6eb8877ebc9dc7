@@ -1,0 +1,73 @@
+package decrypt;
+
+import java.io.*;
+import java.net.ServerSocket;
+import java.net.Socket;
+
+import org.omg.PortableServer.AdapterActivator;
+
+import decrypt.AES_file_DH;
+
+/**
+ * socket server
+ * @author hjh
+ *
+ */
+public class AES_file_DH_server {
+	public AES_file_DH_server() throws Exception{   
+	}
+	static String serverPublicKey = null;
+	static String clientPublicKey = null;         
+	static AES_file_DH ad = new AES_file_DH();       //super error???
+//	try{
+//		AES_file_DH ad = new AES_file_DH();
+//	}catch(Exception e){
+//		e.printStackTrace();
+//	}
+	
+	
+	public static void main(String[] args) throws Exception{
+		//initial bind listen
+		ServerSocket serverSocket = new ServerSocket(8888);
+		//accept
+		System.out.println("******server is going to begin!******");
+		Socket socket = serverSocket.accept();
+		//judge connection accessful ???
+		ad.main();
+		
+		//always listen
+		
+		
+		
+		//input
+		InputStream in = socket.getInputStream();
+		InputStreamReader inputStreamReader = new InputStreamReader(in);
+		BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
+		while((clientPublicKey = bufferedReader.readLine()) != null){
+			System.out.println("Cilent public key:\n" + clientPublicKey);
+		}
+		socket.shutdownInput();
+		
+		//write
+		OutputStream outputStream = socket.getOutputStream();
+		PrintWriter printWriter = new PrintWriter(outputStream);
+		printWriter.write(serverPublicKey);
+		printWriter.flush();
+		socket.shutdownOutput();
+		
+		//close
+		printWriter.close();
+		outputStream.close();
+		bufferedReader.close();
+		inputStreamReader.close();
+		socket.close();
+		serverSocket.close();
+	}
+
+	private static void decrypt() {
+		
+		
+	}
+	
+	
+}

@@ -1,0 +1,54 @@
+package server;
+
+import java.io.*;
+import java.net.ServerSocket;
+import java.net.Socket;
+
+/**
+ * Socket based with TCP
+ * Server
+ * @author hjh
+ * @date 2019/3/12
+ */
+public class Server {
+
+	static String serverPublicKey = "MIHfMIGXBgkqhkiG9w0BAwEwgYkCQQD8poLOjhLKuibvzPcRDlJtsHiwX";
+	public static void main(String[] args) {
+		try{
+			//initial bind listen
+			ServerSocket serverSocket = new ServerSocket(8888);
+			//accept
+			System.out.println("******server is going to begin!******");
+			Socket socket = serverSocket.accept();
+			
+			//input
+			InputStream in = socket.getInputStream();
+			InputStreamReader inputStreamReader = new InputStreamReader(in);
+			BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
+			String clientPublicKey = null;
+			while((clientPublicKey = bufferedReader.readLine()) != null){
+				System.out.println("Cilent public key:\n" + clientPublicKey);
+			}
+			socket.shutdownInput();
+			
+			//write
+			OutputStream outputStream = socket.getOutputStream();
+			PrintWriter printWriter = new PrintWriter(outputStream);
+			printWriter.write(serverPublicKey);
+			printWriter.flush();
+			socket.shutdownOutput();
+			
+			//close
+			printWriter.close();
+			outputStream.close();
+			bufferedReader.close();
+			inputStreamReader.close();
+			socket.close();
+			serverSocket.close();
+		}catch(IOException e){
+			e.printStackTrace();
+		}
+
+	}
+
+}
